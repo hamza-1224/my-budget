@@ -1,0 +1,9 @@
+# My Budget: notes for future changes
+
+- Static web app served by GitHub Pages from `main` at https://hamza-1224.github.io/my-budget/
+- All app code is in `index.html` (styles + one script). `vendor/supabase.js` is supabase-js 2.118.0 (UMD).
+- Data lives in Supabase (project `itgujuuslkymplwfxmft`), table `public.docs` (user_id, coll, id, data jsonb), with row-level security per user. Collections: `config/main`, `txns/*`, `goals/*`. See `schema.sql`.
+- The sync layer (`makeStore`) mimics a small document-store API: `collection(c).onSnapshot`, `doc(path).set/update/delete`. Writes are optimistic with an offline outbox in localStorage.
+- Releasing a change: bump the version in **three places together**: `version.json`, `APP_VERSION` in `index.html`, and the `CACHE` name in `sw.js`. Open copies of the app then show "Update ready · tap to reload".
+- Never commit personal data or backups. Only the publishable key belongs in `config.js`.
+- No AI calls in the app, by the owner's choice.
