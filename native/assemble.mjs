@@ -1,8 +1,10 @@
-// Builds native/www from the web app in the repo root.
+// Bundles the web app (repo root) for the iPhone and Mac apps.
+// Usage: node assemble.mjs [outDir]  (default: native/www; the Mac app passes its own www)
 // www/index.html is a small loader; the real app is bundled as www/app.html.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 const root = new URL("../", import.meta.url).pathname;
-const www = new URL("./www/", import.meta.url).pathname;
+const www = (process.argv[2] ? resolve(process.cwd(), process.argv[2]) : new URL("./www", import.meta.url).pathname) + "/";
 rmSync(www, { recursive: true, force: true });
 mkdirSync(www + "vendor", { recursive: true });
 const app = readFileSync(root + "index.html", "utf8");

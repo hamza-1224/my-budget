@@ -1,0 +1,76 @@
+# Builds the Mac app (My-Budget.dmg, for Apple Silicon and Intel) on GitHub's Mac machines.
+# Not notarized: the first time, approve it in System Settings > Privacy & Security > Open Anyway.
+# Runs when desktop/ changes, or by hand from the Actions tab ("Run workflow").
+name: Build Mac app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["desktop/**", "native/assemble.mjs", "native/loader.html", ".github/workflows/mac-app.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mac-app
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install Rust for Apple Silicon and Intel
+        run: |
+          rustup update stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Install Tauri
+        working-directory: desktop
+        run: npm ci
+
+      - name: Bundle the app
+        working-directory: desktop
+        run: npm run assemble
+
+      - name: Build My Budget.app and .dmg
+        working-directory: desktop
+        run: npx tauri build --target universal-apple-darwin --bundles app,dmg
+
+      - name: Collect files
+        run: |
+          B=desktop/src-tauri/target/universal-apple-darwin/release/bundle
+          ls -R "$B" | head -40
+          mkdir -p out
+          cp "$B"/dmg/*.dmg out/My-Budget.dmg
+          (cd "$B/macos" && ditto -c -k --keepParent "My Budget.app" "$GITHUB_WORKSPACE/out/My-Budget-mac.zip")
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: My-Budget-mac
+          path: out/*
+
+      - name: Publish as the "mac-app" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep -o 'APP_VERSION="[^"]*"' index.html | cut -d'"' -f2)
+          gh release delete mac-app --yes --cleanup-tag || true
+          gh release create mac-app out/My-Budget.dmg out/My-Budget-mac.zip \
+            --title "My Budget for Mac" \
+            --notes "Open My-Budget.dmg and drag My Budget into Applications. First launch: System Settings > Privacy & Security > Open Anyway. Built with app version $VER; newer versions download inside the app when you're online." \
+            --latest=false

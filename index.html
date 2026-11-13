@@ -2102,7 +2102,7 @@ function openComing(){
 }
 
 /* ---------- sync: your own Supabase database ---------- */
-const APP_VERSION="1.0.11";
+const APP_VERSION="1.0.12";
 const SB_CFG=window.MB_CONFIG||{};
 const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 function rid(){const a="abcdefghijklmnopqrstuvwxyz0123456789",r=crypto.getRandomValues(new Uint8Array(20));let s="";for(const x of r)s+=a[x%36];return s}
@@ -2238,7 +2238,7 @@ function wireDataCard(el){
   ex.addEventListener("click",async()=>{
     const json=JSON.stringify({app:"my-budget",exported:iso(today()),docs:S.db.exportDocs()},null,1);
     const name="my-budget-backup-"+iso(today())+".json",file=new File([json],name,{type:"application/json"});
-    try{if(navigator.canShare&&navigator.canShare({files:[file]})&&/iphone|ipad|android/i.test(navigator.userAgent)){await navigator.share({files:[file],title:name});return}}catch(e){if(e&&e.name==="AbortError")return}
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})&&(NATIVE||/iphone|ipad|android/i.test(navigator.userAgent))){await navigator.share({files:[file],title:name});return}}catch(e){if(e&&e.name==="AbortError")return}
     const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
   });
   el.querySelector("#bkImp").addEventListener("change",async e=>{
@@ -2261,7 +2261,7 @@ function wireDataCard(el){
 
 /* ---------- updates ---------- */
 // Inside the iPhone app, updates come from the website and are kept on the phone for the next launch.
-const NATIVE=location.protocol==="capacitor:"||!!window.MB_NATIVE_TEST,REMOTE="https://hamza-1224.github.io/my-budget/";
+const NATIVE=location.protocol==="capacitor:"||location.protocol==="tauri:"||!!window.MB_NATIVE_TEST,REMOTE="https://hamza-1224.github.io/my-budget/";
 function verNewer(a,b){a=String(a).split(".").map(Number);b=String(b).split(".").map(Number);for(let i=0;i<Math.max(a.length,b.length);i++){const x=a[i]||0,y=b[i]||0;if(x!==y)return x>y}return false}
 async function nativeFetchUpdate(v){
   try{const st=JSON.parse(localStorage.getItem("mb.native.app")||"null");if(st&&st.v===v)return true}catch(e){}
@@ -2274,6 +2274,14 @@ async function checkUpdate(){
     if(NATIVE&&!(j&&j.v&&verNewer(j.v,APP_VERSION)&&await nativeFetchUpdate(j.v)))return;
     if(j&&j.v&&j.v!==APP_VERSION&&!document.getElementById("updBar")){const b=document.createElement("button");b.id="updBar";b.className="upd";b.textContent="Update ready · tap to reload";b.addEventListener("click",()=>location.reload());document.body.appendChild(b)}}catch(e){}
 }
+
+// In the Mac app, web links open in your browser instead of inside the app window.
+document.addEventListener("click",e=>{
+  const a=e.target.closest&&e.target.closest("a[href^='http']"),op=window.__TAURI__&&window.__TAURI__.opener;
+  if(!a||!op||e.defaultPrevented)return;
+  try{if(new URL(a.href).origin===location.origin)return}catch(_){return}
+  e.preventDefault();op.openUrl(a.href).catch(()=>{});
+});
 
 /* ---------- start ---------- */
 async function boot(){

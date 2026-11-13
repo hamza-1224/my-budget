@@ -1,0 +1,13 @@
+{
+  "name": "my-budget-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Mac app shell for My Budget (Tauri 2). The app itself is ../index.html.",
+  "scripts": {
+    "assemble": "node ../native/assemble.mjs www",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4"
+  }
+}
