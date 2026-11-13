@@ -2,7 +2,7 @@
 // Pages and settings: network first so updates arrive, but after 4 seconds on a weak
 // connection (or if the network returns an error) the saved copy is used instead.
 // The database library and icons never change between releases, so they load from the phone.
-const CACHE = "my-budget-1.0.10";
+const CACHE = "my-budget-1.0.11";
 const SHELL = ["./", "index.html", "config.js", "vendor/supabase.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const STATIC = /\/(vendor\/supabase\.js|icon-192\.png|icon-512\.png|apple-touch-icon\.png)$/;
 

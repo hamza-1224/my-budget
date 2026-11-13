@@ -1,0 +1,72 @@
+# Builds the iPhone app file (My-Budget.ipa) on GitHub's Mac machines.
+# It is unsigned: AltStore signs it with your own Apple ID when you install it.
+# Runs when native/ changes, or by hand from the Actions tab ("Run workflow").
+name: Build iPhone app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["native/**", ".github/workflows/iphone-app.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: iphone-app
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      - name: Install Capacitor
+        working-directory: native
+        run: npm ci
+
+      - name: Bundle the app into the iPhone project
+        working-directory: native
+        run: npm run sync
+
+      - name: Build (unsigned)
+        working-directory: native/ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tail -n 40
+
+      - name: Package My-Budget.ipa
+        run: |
+          APP=native/ios/App/build/Build/Products/Release-iphoneos/App.app
+          test -d "$APP"
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          (cd out && zip -qry My-Budget.ipa Payload)
+          ls -lh out/My-Budget.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: My-Budget-ipa
+          path: out/My-Budget.ipa
+
+      - name: Publish as the "iphone-app" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep -o 'APP_VERSION="[^"]*"' index.html | cut -d'"' -f2)
+          gh release delete iphone-app --yes --cleanup-tag || true
+          gh release create iphone-app out/My-Budget.ipa \
+            --title "My Budget for iPhone" \
+            --notes "Install with AltStore (see native/README.md). Built with app version $VER; newer versions download inside the app when you're online." \
+            --latest

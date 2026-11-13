@@ -1,0 +1,12 @@
+{
+  "appId": "io.github.hamza1224.mybudget",
+  "appName": "My Budget",
+  "webDir": "www",
+  "backgroundColor": "#F3F4F7",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": true,
+    "limitsNavigationsToAppBoundDomains": false,
+    "preferredContentMode": "mobile"
+  }
+}

@@ -8,3 +8,4 @@
 - Never commit personal data or backups. Only the publishable key belongs in `config.js`.
 - No AI calls in the app, by the owner's choice.
 - Exchange rates: European Central Bank daily reference rates from https://api.frankfurter.dev (free, no key), checked at most every 3 hours when the app opens. The owner can type their own rate, which turns daily updates off (`fxAuto:false` in config).
+- iPhone app: `native/` is a Capacitor 8 shell (see native/README.md). It bundles `index.html` as `app.html` behind `loader.html`, and downloads newer versions of `index.html` from the website at runtime, so web releases reach it without a new .ipa. GitHub Actions (`.github/workflows/iphone-app.yml`) builds an unsigned `My-Budget.ipa` into the `iphone-app` release when `native/` changes; the owner installs it with AltStore.

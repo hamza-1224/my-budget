@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>My Budget</title>
+<style>html,body{margin:0;background:#F3F4F7}@media (prefers-color-scheme:dark){html,body{background:#0E1015}}</style>
+</head>
+<body>
+<script>
+/* My Budget (iPhone app) loader.
+   Opens the newest copy of the app on the phone: the one built into the app, or a newer one
+   the app downloaded from the website while online. If a downloaded copy ever fails to start,
+   the next launch goes back to the built-in copy. */
+(async function () {
+  var KEY = "mb.native.app", BOOT = "mb.native.boot";
+  function ver(h) { var m = /APP_VERSION="([^"]+)"/.exec(h || ""); return m ? m[1] : "0"; }
+  function newer(a, b) {
+    a = String(a).split(".").map(Number); b = String(b).split(".").map(Number);
+    for (var i = 0; i < Math.max(a.length, b.length); i++) { var x = a[i] || 0, y = b[i] || 0; if (x !== y) return x > y; }
+    return false;
+  }
+  var bundled = await (await fetch("app.html")).text(), html = bundled, stored = null;
+  try { stored = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  try {
+    if (stored && stored.html) {
+      if (localStorage.getItem(BOOT) === stored.v) { localStorage.removeItem(KEY); localStorage.removeItem(BOOT); }
+      else if (newer(stored.v, ver(bundled)) && ver(stored.html) === stored.v) { html = stored.html; localStorage.setItem(BOOT, stored.v); }
+      else localStorage.removeItem(KEY);
+    }
+  } catch (e) {}
+  var trying = html !== bundled ? stored.v : null;
+  document.open(); document.write(html); document.close();
+  // A downloaded copy that hasn't started within 4 seconds is dropped right away.
+  if (trying) setTimeout(function () { try { if (localStorage.getItem(BOOT) === trying) location.reload(); } catch (e) {} }, 4000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "my-budget-native",
+  "private": true,
+  "version": "1.0.0",
+  "description": "iPhone shell for My Budget (Capacitor). The app itself is ../index.html.",
+  "scripts": {
+    "assemble": "node assemble.mjs",
+    "sync": "node assemble.mjs && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.6.2",
+    "@capacitor/ios": "8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
+}
