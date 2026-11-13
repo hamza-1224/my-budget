@@ -379,7 +379,9 @@ a.link{text-decoration:none}
 @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.sheet{animation:none}}
 .grab{width:38px;height:4px;border-radius:9px;background:var(--line);margin:0 auto 12px}
-.sheet-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;margin:0 -4px 10px;padding:6px 4px;gap:10px;position:sticky;top:-10px;z-index:3;background:var(--surface)}
+.sheet{overscroll-behavior:contain}
+body.sheet-open{overflow:hidden}
 .sheet-h h2{font-family:var(--font-display);margin:0;font-size:18px}
 .check-note{background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
 .amt-wrap{display:flex;align-items:center;gap:6px;border-bottom:2px solid var(--line);padding:6px 0 8px;margin:10px 0 4px}
@@ -767,6 +769,58 @@ function padAttach(inp){
   inp.addEventListener("focus",()=>{if(PAD.inp!==inp)padOpen(inp)});
   inp.addEventListener("click",()=>{if(PAD.inp!==inp)padOpen(inp)});
 }
+/* ---------- sheets: freeze the page behind, pinned header, swipe down to close ---------- */
+const SHEETS={y:0,locked:false};
+function sheetLock(on){
+  const b=document.body;
+  if(on&&!SHEETS.locked){SHEETS.y=window.scrollY||0;SHEETS.locked=true;b.style.position="fixed";b.style.top=-SHEETS.y+"px";b.style.left="0";b.style.right="0";b.style.width="100%";b.classList.add("sheet-open")}
+  else if(!on&&SHEETS.locked){SHEETS.locked=false;b.style.position=b.style.top=b.style.left=b.style.right=b.style.width="";b.classList.remove("sheet-open");window.scrollTo(0,SHEETS.y)}
+}
+function sheetClose(scrim){
+  if(!scrim||!scrim.isConnected)return;
+  const x=scrim.querySelector(".sheet-h #shX, #shX");
+  if(x)x.click();else scrim.dispatchEvent(new MouseEvent("click",{bubbles:true}));
+  if(scrim.isConnected&&scrim.parentNode)scrim.parentNode.innerHTML="";
+}
+function sheetWire(scrim){
+  const sh=scrim.querySelector(".sheet");if(!sh||sh.dataset.g)return;sh.dataset.g="1";
+  let x0=0,y0=0,t0=0,dy=0,track=false,drag=false,head=false;
+  sh.addEventListener("touchstart",e=>{
+    if(e.touches.length!==1){track=false;return}
+    const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();dy=0;drag=false;
+    head=!!e.target.closest(".grab,.sheet-h")&&!e.target.closest("input,select,textarea");
+    track=head||sh.scrollTop<=0;
+  },{passive:true});
+  sh.addEventListener("touchmove",e=>{
+    if(!track)return;const t=e.touches[0],d=t.clientY-y0;
+    if(!drag){
+      if(Math.abs(t.clientX-x0)>Math.abs(d)+4){track=false;return}
+      if(d>10&&(head||sh.scrollTop<=0)){drag=true;sh.style.transition="none";sh.style.animation="none"}
+      else{if(d<-6)track=false;return}
+    }
+    dy=Math.max(0,d-10);e.preventDefault();
+    sh.style.transform="translateY("+dy+"px)";
+  },{passive:false});
+  sh.addEventListener("touchend",e=>{
+    const t=e.changedTouches[0];
+    if(!drag){
+      // A plain tap on the close button closes even if the browser drops the click.
+      const moved=t&&(Math.abs(t.clientX-x0)>10||Math.abs(t.clientY-y0)>10);
+      if(!moved&&e.target.closest("#shX")&&Date.now()-t0<600){e.preventDefault();sheetClose(scrim)}
+      track=false;return}
+    const fast=dy/Math.max(Date.now()-t0,1)>0.5;
+    sh.style.transition="transform .2s ease";
+    if(dy>Math.min(140,sh.offsetHeight*.28)||(fast&&dy>40)){sh.style.transform="translateY(110%)";setTimeout(()=>sheetClose(scrim),190)}
+    else sh.style.transform="";
+    track=drag=false;
+  },{passive:false});
+  sh.addEventListener("touchcancel",()=>{if(drag){sh.style.transition="transform .2s ease";sh.style.transform=""}track=drag=false});
+}
+function sheetsSync(){
+  const open=[...document.querySelectorAll("#sheetRoot .scrim,#pickRoot .scrim")];
+  open.forEach(sheetWire);sheetLock(open.length>0);
+}
+try{["sheetRoot","pickRoot"].forEach(id=>{const r=document.getElementById(id);if(r)new MutationObserver(sheetsSync).observe(r,{childList:true})})}catch(e){}
 /* Keep the phone's password and contact autofill away from the app's own boxes (sign-in keeps it). */
 function noAutofill(root){(root||document).querySelectorAll('input:not([type=password]):not([type=email]):not([autocomplete]),textarea:not([autocomplete])').forEach(i=>{if(!i.closest("#authView")){i.setAttribute("autocomplete","off");i.setAttribute("data-lpignore","true")}})}
 try{noAutofill();new MutationObserver(ms=>{const seen=new Set();for(const m of ms)if(m.addedNodes.length&&!seen.has(m.target)){seen.add(m.target);noAutofill(m.target)}}).observe(document.documentElement,{childList:true,subtree:true})}catch(e){}
@@ -2048,7 +2102,7 @@ function openComing(){
 }
 
 /* ---------- sync: your own Supabase database ---------- */
-const APP_VERSION="1.0.7";
+const APP_VERSION="1.0.8";
 const SB_CFG=window.MB_CONFIG||{};
 const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 function rid(){const a="abcdefghijklmnopqrstuvwxyz0123456789",r=crypto.getRandomValues(new Uint8Array(20));let s="";for(const x of r)s+=a[x%36];return s}
