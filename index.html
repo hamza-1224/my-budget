@@ -2102,7 +2102,7 @@ function openComing(){
 }
 
 /* ---------- sync: your own Supabase database ---------- */
-const APP_VERSION="1.0.9";
+const APP_VERSION="1.0.10";
 const SB_CFG=window.MB_CONFIG||{};
 const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 function rid(){const a="abcdefghijklmnopqrstuvwxyz0123456789",r=crypto.getRandomValues(new Uint8Array(20));let s="";for(const x of r)s+=a[x%36];return s}
@@ -2188,6 +2188,15 @@ function authShell(inner){
   el.innerHTML='<div class="auth-card card"><div class="brand" style="margin-bottom:6px"><div class="brand-mark" aria-hidden="true">₹</div>My Budget</div>'+inner+'</div>';
   return el;
 }
+// Part of the app didn't arrive (weak signal, or mid-update). Not a setup problem.
+function showLoadError(){
+  let n=0;try{n=Number(sessionStorage.getItem("mb.retry"))||0}catch(e){}
+  authShell('<h2 class="h-view" style="font-size:19px">Couldn\'t finish loading</h2><p class="muted">Part of the app didn\'t download, usually because the signal is weak. Your data is safe.</p><div class="actions" style="margin-top:14px"><button class="btn" id="ldRetry">Try again</button></div>');
+  const go=()=>{try{sessionStorage.setItem("mb.retry",String(n+1))}catch(e){}location.reload()};
+  $("#ldRetry").addEventListener("click",go);
+  addEventListener("online",go,{once:true});
+  if(n<2)setTimeout(()=>{if(navigator.onLine!==false)go()},2500);
+}
 function showSetup(){
   authShell('<h2 class="h-view" style="font-size:19px">Almost ready</h2><p class="muted">This copy isn\'t connected to your database yet. Add your Supabase URL and key to <b>config.js</b>, then reload.</p>');
 }
@@ -2260,7 +2269,9 @@ async function checkUpdate(){
 async function boot(){
   const h=location.hash.slice(1);if(VIEWS.includes(h))setView(h,false);else render();
   if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
-  if(!window.supabase||!SB_CFG.url||!SB_CFG.key||/YOUR_/.test(SB_CFG.url+SB_CFG.key)){showSetup();return}
+  if(!window.MB_CONFIG||!window.supabase){showLoadError();return}
+  try{sessionStorage.removeItem("mb.retry")}catch(e){}
+  if(!SB_CFG.url||!SB_CFG.key||/YOUR_/.test(SB_CFG.url+SB_CFG.key)){showSetup();return}
   S.sb=window.supabase.createClient(SB_CFG.url,SB_CFG.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   let session=null;try{session=(await S.sb.auth.getSession()).data.session}catch(e){}
   if(session)start(session);else showLogin();
