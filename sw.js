@@ -1,6 +1,6 @@
 // My Budget offline support. Always tries the network first so updates arrive,
 // and falls back to the saved copy when you're offline.
-const CACHE = "my-budget-1.0.8";
+const CACHE = "my-budget-1.0.9";
 const SHELL = ["./", "index.html", "config.js", "vendor/supabase.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {

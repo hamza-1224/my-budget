@@ -577,7 +577,7 @@ function peopleOpen(){
   return Array.from(m.values()).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
 }
 function hasLimits(kind){const k=kind==="week"?"weekly":"monthly";return Number(kind==="week"?cfg().weeklyTotal:cfg().monthlyTotal)>0||cats().some(c=>Number(c[k])>0)}
-function defaultPeriod(){return hasLimits("month")?"month":hasLimits("week")?"week":"month"}
+function defaultPeriod(){return"week"}
 const WPM=52/12;
 function niceAmt(n){n=Number(n)||0;if(n<=0)return 0;const st=n<1000?10:n<20000?50:100;return Math.round(n/st)*st}
 const toMonth=w=>niceAmt(w*WPM),toWeek=m=>niceAmt(m/WPM);
@@ -2102,7 +2102,7 @@ function openComing(){
 }
 
 /* ---------- sync: your own Supabase database ---------- */
-const APP_VERSION="1.0.8";
+const APP_VERSION="1.0.9";
 const SB_CFG=window.MB_CONFIG||{};
 const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 function rid(){const a="abcdefghijklmnopqrstuvwxyz0123456789",r=crypto.getRandomValues(new Uint8Array(20));let s="";for(const x of r)s+=a[x%36];return s}
