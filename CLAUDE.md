@@ -7,3 +7,4 @@
 - Releasing a change: bump the version in **three places together**: `version.json`, `APP_VERSION` in `index.html`, and the `CACHE` name in `sw.js`. Open copies of the app then show "Update ready · tap to reload".
 - Never commit personal data or backups. Only the publishable key belongs in `config.js`.
 - No AI calls in the app, by the owner's choice.
+- Exchange rates: European Central Bank daily reference rates from https://api.frankfurter.dev (free, no key), checked at most every 3 hours when the app opens. The owner can type their own rate, which turns daily updates off (`fxAuto:false` in config).
